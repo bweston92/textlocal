@@ -91,3 +91,15 @@ func TestCreditsCanBeFailQuietly(t *testing.T) {
 
 	assert.NotNil(t, err)
 }
+
+func TestMessageCanBeSent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	c, _ := New("https://api.txtlocal.com", "abc")
+
+	res := httpmock.NewStringResponder(200, `{"status": "success"}`)
+	httpmock.RegisterResponder("POST", "https://api.txtlocal.com/send", res)
+
+	assert.Nil(t, c.SendSMS([]string{"00000000000"}, "Testing", "TestFrom"))
+}

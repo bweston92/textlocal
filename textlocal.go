@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"net/url"
 )
 
 // DefaultBaseUrl is the default TextLocal API gateway.
@@ -127,4 +128,40 @@ func (c *Connection) GetCredits() (GetCreditsResponse, error) {
 		RemainingSMS: rS,
 		RemainingMMS: rM,
 	}, nil
+}
+
+// SendSMS will send a message to a list of numbers.
+func (c *Connection) SendSMS(n []string, m string, f string) (error) {
+	form := url.Values{}
+	form.Add("apiKey", c.apiKey)
+	form.Add("numbers", strings.Join(n, ","))
+	form.Add("message", m)
+	form.Add("sender", f)
+
+	req, err := http.NewRequest("POST", c.baseUrl + "/send", strings.NewReader(form.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := c.client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	content, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return err
+	}
+
+	var payload map[string]interface{}
+
+	if err = json.Unmarshal(content, &payload); err != nil {
+		return err
+	}
+
+	if payload["status"].(string) != "success" {
+		return getErrorFromResponse(payload)
+	}
+
+	return nil
 }
